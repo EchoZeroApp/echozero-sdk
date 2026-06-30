@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+target/
+dist/
+node_modules/
+.venv/

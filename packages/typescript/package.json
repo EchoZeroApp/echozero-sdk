@@ -1,0 +1,20 @@
+{
+  "name": "@echozero/sdk",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK for EchoZero REST, MCP, webhooks, and signal streams.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
