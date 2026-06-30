@@ -7,14 +7,15 @@ This repository is intended to become `EchoZeroApp/echozero-sdk` and ships under
 - TypeScript package: `@echozero/sdk`
 - Python package: `echozero`
 - Rust crate: `echozero`
+- Go module: `github.com/EchoZeroApp/echozero-sdk/packages/go`
 
 ## What Is Included
 
 - Typed REST client primitives for EchoZero MCP REST endpoints.
 - Optional HMAC request-signing helpers for `x-signature` / `x-timestamp`.
 - Inbound agent webhook signing and verification helpers.
-- WebSocket signal client helpers for developer signal streams.
-- Example projects for TypeScript, Python, and Rust.
+- WebSocket signal client helpers for developer signal streams where supported.
+- Example projects for TypeScript, Python, Rust, and Go.
 
 ## API Source
 
@@ -38,6 +39,7 @@ This is a source scaffold, not a published release. Before publishing:
    - npm: `@echozero/sdk`
    - PyPI: `echozero`
    - crates.io: `echozero`
+   - Go module: `github.com/EchoZeroApp/echozero-sdk/packages/go`
 
 ## Basic TypeScript Usage
 
@@ -49,8 +51,8 @@ const client = new EchoZeroClient({
   apiKey: process.env.ECHOZERO_API_KEY,
 });
 
-const me = await client.get('/api/v1/users/me');
-console.log(me);
+const metadata = await client.get('/public/index.json');
+console.log(metadata.name);
 ```
 
 ## Basic Python Usage
@@ -63,7 +65,7 @@ client = EchoZeroClient(
     api_key=os.environ["ECHOZERO_API_KEY"],
 )
 
-print(client.get("/api/v1/users/me"))
+print(client.get("/public/index.json")["name"])
 ```
 
 ## Basic Rust Usage
@@ -72,5 +74,18 @@ print(client.get("/api/v1/users/me"))
 let client = echozero::EchoZeroClient::new("https://mcp.echozero.app")
     .with_api_key(std::env::var("ECHOZERO_API_KEY")?);
 
-let value = client.get_json("/api/v1/users/me").await?;
+let value = client.get_json("/public/index.json").await?;
+```
+
+## Basic Go Usage
+
+```go
+client := echozero.NewClient("https://mcp.echozero.app").
+    WithAPIKey(os.Getenv("ECHOZERO_API_KEY"))
+
+var metadata map[string]any
+if err := client.Get(context.Background(), "/public/index.json", &metadata); err != nil {
+    panic(err)
+}
+fmt.Println(metadata["name"])
 ```
