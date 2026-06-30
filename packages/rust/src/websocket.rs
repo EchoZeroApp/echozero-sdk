@@ -6,7 +6,10 @@ pub async fn connect_signal_stream(
     url: &str,
     api_key: Option<&str>,
     bearer_token: Option<&str>,
-) -> Result<tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>, tokio_tungstenite::tungstenite::Error> {
+) -> Result<
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>,
+    tokio_tungstenite::tungstenite::Error,
+> {
     let mut parsed = url::Url::parse(url).expect("valid websocket url");
     if let Some(api_key) = api_key {
         parsed.query_pairs_mut().append_pair("api_key", api_key);

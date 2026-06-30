@@ -57,7 +57,8 @@ impl EchoZeroClient {
     }
 
     pub async fn get_json(&self, path: &str) -> Result<Value, EchoZeroError> {
-        self.request_json(reqwest::Method::GET, path, None, false).await
+        self.request_json(reqwest::Method::GET, path, None, false)
+            .await
     }
 
     pub async fn post_json(
@@ -66,7 +67,8 @@ impl EchoZeroClient {
         body: Value,
         hmac: bool,
     ) -> Result<Value, EchoZeroError> {
-        self.request_json(reqwest::Method::POST, path, Some(body), hmac).await
+        self.request_json(reqwest::Method::POST, path, Some(body), hmac)
+            .await
     }
 
     pub async fn request_json(
@@ -96,8 +98,13 @@ impl EchoZeroClient {
                 .as_deref()
                 .ok_or(EchoZeroError::MissingHmacSecret)?;
             let path_with_query = path_with_query(&url);
-            let (timestamp, signature) =
-                sign_rest_request(secret, method.as_str(), &path_with_query, body.as_ref(), None);
+            let (timestamp, signature) = sign_rest_request(
+                secret,
+                method.as_str(),
+                &path_with_query,
+                body.as_ref(),
+                None,
+            );
             headers.insert("x-timestamp", HeaderValue::from_str(&timestamp).unwrap());
             headers.insert("x-signature", HeaderValue::from_str(&signature).unwrap());
         }

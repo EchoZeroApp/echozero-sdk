@@ -24,7 +24,7 @@ def sign_rest_request(
     timestamp_ms: int | None = None,
 ) -> dict[str, str]:
     timestamp = str(timestamp_ms or int(time.time() * 1000))
-    body_text = "" if body is None else body if isinstance(body, str) else json.dumps(body)
+    body_text = "" if body is None else body if isinstance(body, str) else stable_json(body)
     payload = f"{timestamp}{method.upper()}{path}{body_text}"
     return {
         "x-timestamp": timestamp,
