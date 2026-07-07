@@ -1,3 +1,5 @@
+import { inboundWebhookCanonicalJson, type InboundWebhookBody } from './inboundCanonical.js';
+
 export type HmacHeaders = {
   'x-timestamp': string;
   'x-signature': string;
@@ -69,17 +71,18 @@ export async function signRestRequest(input: {
   };
 }
 
+/** @deprecated Use `inboundWebhookCanonicalJson` for agent signal signing. */
 export function canonicalWebhookBody(body: Record<string, unknown>): string {
-  return stableJson(body);
+  return inboundWebhookCanonicalJson(body);
 }
 
 export async function signInboundWebhook(input: {
   signingSecret: string;
-  body: Record<string, unknown>;
+  body: InboundWebhookBody;
   timestampSeconds?: number;
 }): Promise<InboundWebhookHeaders> {
   const timestamp = String(input.timestampSeconds ?? Math.floor(Date.now() / 1000));
-  const canonical = canonicalWebhookBody(input.body);
+  const canonical = inboundWebhookCanonicalJson(input.body);
   return {
     'X-EZ-Timestamp': timestamp,
     'X-EZ-Signature': await hmacSha256Hex(
@@ -91,7 +94,7 @@ export async function signInboundWebhook(input: {
 
 export async function verifyInboundWebhook(input: {
   signingSecret: string;
-  body: Record<string, unknown>;
+  body: InboundWebhookBody;
   timestampSeconds: string | number;
   signature: string;
   maxSkewSeconds?: number;
@@ -109,3 +112,18 @@ export async function verifyInboundWebhook(input: {
   });
   return expected['X-EZ-Signature'] === input.signature.toLowerCase();
 }
+
+export async function verifyOutboundWebhook(input: {
+  secretKey: string;
+  rawBody: string;
+  timestamp: string;
+  signature: string;
+}): Promise<boolean> {
+  const expected = await hmacSha256Hex(
+    input.secretKey,
+    `${input.timestamp}.${input.rawBody}`,
+  );
+  return expected === input.signature.toLowerCase();
+}
+
+export { inboundWebhookCanonicalJson };

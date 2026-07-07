@@ -1,3 +1,4 @@
+use crate::inbound_canonical::inbound_webhook_canonical_json;
 use hmac::{Hmac, Mac};
 use serde_json::{Map, Value};
 use sha2::Sha256;
@@ -41,30 +42,19 @@ pub fn sign_rest_request(
     secret_key: &str,
     method: &str,
     path: &str,
-    body: Option<&Value>,
+    body_text: &str,
     timestamp_ms: Option<u128>,
 ) -> (String, String) {
     let timestamp = timestamp_ms.unwrap_or_else(now_ms).to_string();
-    let body_text = body
-        .map(serde_json::to_string)
-        .transpose()
-        .unwrap()
-        .unwrap_or_default();
     let signature = hmac_sha256_hex(
         secret_key,
-        &format!(
-            "{}{}{}{}",
-            timestamp,
-            method.to_uppercase(),
-            path,
-            body_text
-        ),
+        &format!("{}{}{}{}", timestamp, method.to_uppercase(), path, body_text),
     );
     (timestamp, signature)
 }
 
 pub fn canonical_webhook_body(body: &Map<String, Value>) -> String {
-    stable_json(&Value::Object(body.clone()))
+    inbound_webhook_canonical_json(body)
 }
 
 pub fn sign_inbound_webhook(
@@ -73,7 +63,7 @@ pub fn sign_inbound_webhook(
     timestamp_seconds: Option<u64>,
 ) -> (String, String) {
     let timestamp = timestamp_seconds.unwrap_or_else(now_seconds).to_string();
-    let canonical = canonical_webhook_body(body);
+    let canonical = inbound_webhook_canonical_json(body);
     let signature = hmac_sha256_hex(signing_secret, &format!("{timestamp}.{canonical}"));
     (timestamp, signature)
 }
@@ -90,6 +80,16 @@ pub fn verify_inbound_webhook(
         return false;
     }
     let (_, expected) = sign_inbound_webhook(signing_secret, body, Some(timestamp_seconds));
+    expected == signature.to_ascii_lowercase()
+}
+
+pub fn verify_outbound_webhook(
+    secret_key: &str,
+    raw_body: &str,
+    timestamp: &str,
+    signature: &str,
+) -> bool {
+    let expected = hmac_sha256_hex(secret_key, &format!("{timestamp}.{raw_body}"));
     expected == signature.to_ascii_lowercase()
 }
 
@@ -115,12 +115,12 @@ mod tests {
     #[test]
     fn signs_rest_requests_with_backend_payload_format() {
         let body = json!({ "name": "SDK HMAC Test" });
-
+        let body_text = serde_json::to_string(&body).unwrap();
         let (_, signature) = sign_rest_request(
             "test_secret",
             "POST",
             "/api/api-keys",
-            Some(&body),
+            &body_text,
             Some(1_710_000_000_000),
         );
 
@@ -141,6 +141,44 @@ mod tests {
         assert_eq!(
             signature,
             "1d30d896fc609e62bcf9be991c1dc1177a9c63219909869ef2846bad4685de3b"
+        );
+    }
+
+    #[test]
+    fn inbound_canonical_strips_unknown_fields() {
+        let body = json!({"text":"BUY SOL","extraField":"ignored"})
+            .as_object()
+            .cloned()
+            .unwrap();
+        assert_eq!(inbound_webhook_canonical_json(&body), r#"{"text":"BUY SOL"}"#);
+    }
+
+    #[test]
+    fn signs_inbound_webhooks_ignoring_unknown_fields() {
+        let body = json!({
+            "eventType": "buy",
+            "idempotencyKey": "test-1",
+            "reasoning": "test",
+            "tokenAddress": "So11111111111111111111111111111111111111112",
+            "amount": 500
+        })
+        .as_object()
+        .cloned()
+        .unwrap();
+        let canonical = crate::inbound_canonical::inbound_webhook_canonical_json(&body);
+        assert_eq!(
+            canonical,
+            r#"{"amount":500,"eventType":"buy","idempotencyKey":"test-1","reasoning":"test","tokenAddress":"So11111111111111111111111111111111111111112"}"#
+        );
+        let mut with_extra = body.clone();
+        with_extra.insert("unknownField".to_string(), json!("strip me"));
+
+        let (_, a) = sign_inbound_webhook("secret", &body, Some(1_710_000_000));
+        let (_, b) = sign_inbound_webhook("secret", &with_extra, Some(1_710_000_000));
+        assert_eq!(a, b);
+        assert_eq!(
+            a,
+            "be420f61d91e6b871481774c62f972f0aafa6f5f1a727ba1e4a32558784f77c3"
         );
     }
 }

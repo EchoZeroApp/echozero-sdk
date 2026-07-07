@@ -2,7 +2,9 @@
 
 Official EchoZero SDK workspace.
 
-This repository is intended to become `EchoZeroApp/echozero-sdk` and ships under the MIT License. It contains public client SDKs for the EchoZero MCP/REST API surface:
+Documentation: https://docs.echozero.app
+
+This repository is `EchoZeroApp/echozero-sdk` and ships under the MIT License. It contains public client SDKs for the EchoZero MCP/REST API surface:
 
 - TypeScript package: `@echozero/sdk`
 - Python package: `echozero`
@@ -13,7 +15,9 @@ This repository is intended to become `EchoZeroApp/echozero-sdk` and ships under
 
 - Typed REST client primitives for EchoZero MCP REST endpoints.
 - Optional HMAC request-signing helpers for `x-signature` / `x-timestamp`.
-- Inbound agent webhook signing and verification helpers.
+- Inbound agent webhook signing and verification (`X-EZ-Signature` / `X-EZ-Timestamp`).
+- Outbound `signal.execution` webhook verification (`x-echozero-signature`).
+- `postAgentSignal` / `post_agent_signal` helpers for developer agent ingress.
 - WebSocket signal client helpers for developer signal streams where supported.
 - Example projects for TypeScript, Python, Rust, and Go.
 

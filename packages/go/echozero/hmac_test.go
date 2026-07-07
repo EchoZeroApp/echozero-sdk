@@ -39,6 +39,52 @@ func TestSignInboundWebhookUsesCanonicalJSON(t *testing.T) {
 	}
 }
 
+func TestInboundCanonicalStripsUnknownFields(t *testing.T) {
+	canonical, err := InboundWebhookCanonicalJSON(map[string]any{
+		"text":       "BUY SOL",
+		"extraField": "ignored",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if canonical != `{"text":"BUY SOL"}` {
+		t.Fatalf("unexpected canonical: %s", canonical)
+	}
+}
+
+func TestSignInboundWebhookIgnoresUnknownFields(t *testing.T) {
+	body := map[string]any{
+		"eventType":      "buy",
+		"idempotencyKey": "test-1",
+		"reasoning":      "test",
+		"tokenAddress":   "So11111111111111111111111111111111111111112",
+		"amount":         500,
+	}
+	withExtra := map[string]any{
+		"eventType":      "buy",
+		"idempotencyKey": "test-1",
+		"reasoning":      "test",
+		"tokenAddress":   "So11111111111111111111111111111111111111112",
+		"amount":         500,
+		"unknownField":   "strip me",
+	}
+	a, err := SignInboundWebhook("secret", body, 1_710_000_000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := SignInboundWebhook("secret", withExtra, 1_710_000_000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.Signature != b.Signature {
+		t.Fatalf("expected equal signatures, got %s vs %s", a.Signature, b.Signature)
+	}
+	const expected = "be420f61d91e6b871481774c62f972f0aafa6f5f1a727ba1e4a32558784f77c3"
+	if a.Signature != expected {
+		t.Fatalf("signature mismatch: got %s want %s", a.Signature, expected)
+	}
+}
+
 func TestVerifyInboundWebhook(t *testing.T) {
 	body := map[string]any{
 		"text":           "BUY SOL 500 USDC",
@@ -55,5 +101,14 @@ func TestVerifyInboundWebhook(t *testing.T) {
 	}
 	if !ok {
 		t.Fatal("expected webhook verification to pass")
+	}
+}
+
+func TestVerifyOutboundWebhook(t *testing.T) {
+	rawBody := `{"event":"signal.execution","signalId":"sig_1","developerAgentId":"agent_1","status":"executed","timestamp":"2026-07-06T12:00:00.000Z"}`
+	timestamp := "2026-07-06T12:00:00.000Z"
+	signature := hmacSHA256Hex("webhook_secret", timestamp+"."+rawBody)
+	if !VerifyOutboundWebhook("webhook_secret", rawBody, timestamp, signature) {
+		t.Fatal("expected outbound webhook verification to pass")
 	}
 }

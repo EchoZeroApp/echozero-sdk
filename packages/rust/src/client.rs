@@ -1,6 +1,7 @@
+use crate::hmac::sign_inbound_webhook;
 use crate::hmac::sign_rest_request;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, CONTENT_TYPE};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use thiserror::Error;
 use url::Url;
 
@@ -19,6 +20,8 @@ pub enum EchoZeroError {
     },
     #[error("hmac_secret_key is required when hmac=true")]
     MissingHmacSecret,
+    #[error("json error: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 #[derive(Clone)]
@@ -71,6 +74,40 @@ impl EchoZeroClient {
             .await
     }
 
+    pub async fn post_agent_signal(
+        &self,
+        agent_id: &str,
+        body: Map<String, Value>,
+        signing_secret: &str,
+    ) -> Result<Value, EchoZeroError> {
+        let (timestamp, signature) = sign_inbound_webhook(signing_secret, &body, None);
+        let url = self.url(&format!("/api/public/agent-signals/{agent_id}"))?;
+        let body_value = Value::Object(body);
+        let body_text = serde_json::to_string(&body_value)?;
+        let mut headers = HeaderMap::new();
+        headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        headers.insert("X-EZ-Timestamp", HeaderValue::from_str(&timestamp).unwrap());
+        headers.insert("X-EZ-Signature", HeaderValue::from_str(&signature).unwrap());
+        if let Some(token) = &self.bearer_token {
+            headers.insert(
+                "authorization",
+                HeaderValue::from_str(&format!("Bearer {token}")).unwrap(),
+            );
+        } else if let Some(api_key) = &self.api_key {
+            headers.insert("x-api-key", HeaderValue::from_str(api_key).unwrap());
+        }
+
+        let response = self
+            .http
+            .post(url)
+            .headers(headers)
+            .body(body_text)
+            .send()
+            .await?;
+        self.decode_response(response).await
+    }
+
     pub async fn request_json(
         &self,
         method: reqwest::Method,
@@ -81,9 +118,13 @@ impl EchoZeroClient {
         let url = self.url(path)?;
         let mut headers = HeaderMap::new();
         headers.insert(ACCEPT, HeaderValue::from_static("application/json"));
-        if body.is_some() {
-            headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        }
+        let body_text = match &body {
+            Some(value) => {
+                headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+                Some(serde_json::to_string(value)?)
+            }
+            None => None,
+        };
         if let Some(token) = &self.bearer_token {
             headers.insert(
                 "authorization",
@@ -102,7 +143,7 @@ impl EchoZeroClient {
                 secret,
                 method.as_str(),
                 &path_with_query,
-                body.as_ref(),
+                body_text.as_deref().unwrap_or(""),
                 None,
             );
             headers.insert("x-timestamp", HeaderValue::from_str(&timestamp).unwrap());
@@ -110,10 +151,17 @@ impl EchoZeroClient {
         }
 
         let mut request = self.http.request(method, url).headers(headers);
-        if let Some(body) = body {
-            request = request.json(&body);
+        if let Some(body_text) = body_text {
+            request = request.body(body_text);
         }
         let response = request.send().await?;
+        self.decode_response(response).await
+    }
+
+    async fn decode_response(
+        &self,
+        response: reqwest::Response,
+    ) -> Result<Value, EchoZeroError> {
         let status = response.status();
         let payload = response.json::<Value>().await.unwrap_or(Value::Null);
         if !status.is_success() {

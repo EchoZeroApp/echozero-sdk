@@ -20,9 +20,10 @@ type Client struct {
 }
 
 type RequestOptions struct {
-	Query map[string]string
-	Body  any
-	HMAC  bool
+	Query   map[string]string
+	Body    any
+	HMAC    bool
+	Headers map[string]string
 }
 
 type APIError struct {
@@ -72,6 +73,32 @@ func (client *Client) Post(ctx context.Context, path string, body any, out any) 
 	return client.Request(ctx, http.MethodPost, path, RequestOptions{Body: body}, out)
 }
 
+func (client *Client) PostAgentSignal(
+	ctx context.Context,
+	agentID string,
+	body map[string]any,
+	signingSecret string,
+	out any,
+) error {
+	headers, err := SignInboundWebhook(signingSecret, body, 0)
+	if err != nil {
+		return err
+	}
+	return client.Request(
+		ctx,
+		http.MethodPost,
+		"/api/public/agent-signals/"+agentID,
+		RequestOptions{
+			Body: body,
+			Headers: map[string]string{
+				"X-EZ-Timestamp": headers.Timestamp,
+				"X-EZ-Signature": headers.Signature,
+			},
+		},
+		out,
+	)
+}
+
 func (client *Client) Request(ctx context.Context, method, path string, options RequestOptions, out any) error {
 	requestURL, pathWithQuery, err := client.buildURL(path, options.Query)
 	if err != nil {
@@ -95,6 +122,9 @@ func (client *Client) Request(ctx context.Context, method, path string, options 
 	request.Header.Set("Accept", "application/json")
 	if options.Body != nil {
 		request.Header.Set("Content-Type", "application/json")
+	}
+	for key, value := range options.Headers {
+		request.Header.Set(key, value)
 	}
 	if client.BearerToken != "" {
 		request.Header.Set("Authorization", "Bearer "+client.BearerToken)

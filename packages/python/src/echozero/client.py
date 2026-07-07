@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
-from urllib.parse import urlencode
 
 import requests
 
-from .hmac import sign_rest_request
+from .hmac import sign_inbound_webhook, sign_rest_request
+from .inbound_canonical import rest_request_body_text
 
 
 class EchoZeroApiError(RuntimeError):
@@ -44,6 +44,22 @@ class EchoZeroClient:
     def delete(self, path: str, **kwargs: Any) -> Any:
         return self.request("DELETE", path, **kwargs)
 
+    def post_agent_signal(
+        self,
+        agent_id: str,
+        body: Mapping[str, Any],
+        signing_secret: str,
+    ) -> Any:
+        webhook_headers = sign_inbound_webhook(signing_secret=signing_secret, body=body)
+        return self.post(
+            f"/api/public/agent-signals/{agent_id}",
+            json_body=dict(body),
+            headers={
+                "X-EZ-Timestamp": webhook_headers["X-EZ-Timestamp"],
+                "X-EZ-Signature": webhook_headers["X-EZ-Signature"],
+            },
+        )
+
     def request(
         self,
         method: str,
@@ -61,6 +77,13 @@ class EchoZeroClient:
         elif self.api_key:
             request_headers["x-api-key"] = self.api_key
 
+        body_bytes: bytes | None = None
+        body_text = ""
+        if json_body is not None:
+            body_text = rest_request_body_text(json_body)
+            body_bytes = body_text.encode("utf-8")
+            request_headers["Content-Type"] = "application/json"
+
         if hmac:
             if not self.hmac_secret_key:
                 raise ValueError("hmac_secret_key is required when hmac=True")
@@ -69,14 +92,14 @@ class EchoZeroClient:
                     secret_key=self.hmac_secret_key,
                     method=method,
                     path=self._path_with_query(path, query),
-                    body=json_body,
+                    body=body_text if json_body is not None else None,
                 )
             )
 
         response = self.session.request(
             method.upper(),
             url,
-            json=json_body,
+            data=body_bytes,
             headers=request_headers,
         )
         payload = self._read_json(response)
@@ -97,6 +120,8 @@ class EchoZeroClient:
             base = path
         else:
             base = f"{self.base_url}{path if path.startswith('/') else f'/{path}'}"
+        from urllib.parse import urlencode
+
         query_string = urlencode({k: v for k, v in (query or {}).items() if v is not None})
         return f"{base}?{query_string}" if query_string else base
 
@@ -106,6 +131,8 @@ class EchoZeroClient:
 
             parsed = urlparse(path)
             path = parsed.path + (f"?{parsed.query}" if parsed.query else "")
+        from urllib.parse import urlencode
+
         query_string = urlencode({k: v for k, v in (query or {}).items() if v is not None})
         return f"{path}?{query_string}" if query_string else path
 

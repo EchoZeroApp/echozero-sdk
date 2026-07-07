@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -51,11 +52,11 @@ func SignRestRequest(secretKey, method, path string, body any, timestampMs int64
 		if bodyString, ok := body.(string); ok {
 			bodyText = bodyString
 		} else {
-			stable, err := StableJSON(body)
+			raw, err := json.Marshal(body)
 			if err != nil {
 				return HMACHeaders{}, err
 			}
-			bodyText = stable
+			bodyText = string(raw)
 		}
 	}
 
@@ -64,7 +65,7 @@ func SignRestRequest(secretKey, method, path string, body any, timestampMs int64
 }
 
 func CanonicalWebhookBody(body map[string]any) (string, error) {
-	return StableJSON(body)
+	return InboundWebhookCanonicalJSON(body)
 }
 
 func SignInboundWebhook(signingSecret string, body map[string]any, timestampSeconds int64) (InboundWebhookHeaders, error) {
@@ -72,7 +73,7 @@ func SignInboundWebhook(signingSecret string, body map[string]any, timestampSeco
 		timestampSeconds = time.Now().Unix()
 	}
 	timestamp := strconv.FormatInt(timestampSeconds, 10)
-	canonical, err := CanonicalWebhookBody(body)
+	canonical, err := InboundWebhookCanonicalJSON(body)
 	if err != nil {
 		return InboundWebhookHeaders{}, err
 	}
@@ -93,7 +94,12 @@ func VerifyInboundWebhook(signingSecret string, body map[string]any, timestampSe
 	if err != nil {
 		return false, err
 	}
-	return subtle.ConstantTimeCompare([]byte(expected.Signature), []byte(signature)) == 1, nil
+	return subtle.ConstantTimeCompare([]byte(expected.Signature), []byte(strings.ToLower(signature))) == 1, nil
+}
+
+func VerifyOutboundWebhook(secretKey, rawBody, timestamp, signature string) bool {
+	expected := hmacSHA256Hex(secretKey, timestamp+"."+rawBody)
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(strings.ToLower(signature))) == 1
 }
 
 func hmacSHA256Hex(secret, payload string) string {

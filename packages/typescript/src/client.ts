@@ -1,4 +1,5 @@
-import { signRestRequest } from './hmac.js';
+import { signInboundWebhook, signRestRequest } from './hmac.js';
+import type { AgentSignalResponse, InboundSignalBody } from './signals.js';
 
 export type EchoZeroClientOptions = {
   baseUrl?: string;
@@ -63,6 +64,20 @@ export class EchoZeroClient {
 
   delete<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
     return this.request<T>(path, { ...options, method: 'DELETE' });
+  }
+
+  async postAgentSignal<T = AgentSignalResponse>(
+    agentId: string,
+    body: InboundSignalBody,
+    signingSecret: string,
+  ): Promise<T> {
+    const webhookHeaders = await signInboundWebhook({ signingSecret, body });
+    return this.post<T>(`/api/public/agent-signals/${agentId}`, body, {
+      headers: {
+        'X-EZ-Timestamp': webhookHeaders['X-EZ-Timestamp'],
+        'X-EZ-Signature': webhookHeaders['X-EZ-Signature'],
+      },
+    });
   }
 
   async request<T = unknown>(
