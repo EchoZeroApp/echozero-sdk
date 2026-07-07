@@ -19,7 +19,30 @@ This repository is `EchoZeroApp/echozero-sdk` and ships under the MIT License. I
 - Outbound `signal.execution` webhook verification (`x-echozero-signature`).
 - `postAgentSignal` / `post_agent_signal` helpers for developer agent ingress.
 - WebSocket signal client helpers for developer signal streams where supported.
-- Example projects for TypeScript, Python, Rust, and Go.
+- Example projects for TypeScript, Python, Rust, and Go under `examples/`.
+
+## Examples
+
+```bash
+# TypeScript
+npx tsx examples/typescript/basic.ts
+
+# Python
+python examples/python/basic.py
+
+# Go
+cd examples/go && go run .
+
+# Rust
+cd examples/rust && cargo run
+
+# Rust (signing only, no HTTP — useful when DNS/network is down)
+cd examples/rust && ECHOZERO_OFFLINE=1 cargo run
+```
+
+Set `ECHOZERO_API_KEY`, `ECHOZERO_OAUTH_TOKEN`, or `ECHOZERO_WEBHOOK_SECRET` as needed.
+
+If you see `failed to lookup address information` or DNS errors, check network access to `mcp.echozero.app`, or point at a local server with `ECHOZERO_BASE_URL=http://localhost:4010`.
 
 ## API Source
 
