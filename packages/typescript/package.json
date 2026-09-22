@@ -3,14 +3,49 @@
   "version": "0.1.0",
   "description": "Official TypeScript SDK for EchoZero REST, MCP, webhooks, and signal streams.",
   "license": "MIT",
+  "author": "Echo Zero <support@echozero.app>",
+  "homepage": "https://docs.echozero.app/guides/sdk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EchoZeroApp/echozero-sdk.git",
+    "directory": "packages/typescript"
+  },
+  "bugs": {
+    "url": "https://github.com/EchoZeroApp/echozero-sdk/issues"
+  },
+  "keywords": [
+    "echozero",
+    "trading",
+    "copy-trading",
+    "webhooks",
+    "hmac",
+    "solana",
+    "hyperliquid"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "README.md", "LICENSE"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "test": "tsx --test src/*.test.ts",
+    "prepublishOnly": "npm run typecheck && npm run test && npm run build"
   },
   "engines": {
     "node": ">=20"

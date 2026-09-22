@@ -1,0 +1,76 @@
+name: Release
+
+# Manual publish. Tick only the registries you want to push.
+# crates.io is LAST and IRREVERSIBLE - a published version can be yanked but never replaced.
+on:
+  workflow_dispatch:
+    inputs:
+      npm:
+        description: 'Publish @echozero/sdk to npm'
+        type: boolean
+        default: false
+      pypi:
+        description: 'Publish echozero to PyPI'
+        type: boolean
+        default: false
+      crates:
+        description: 'Publish echozero to crates.io (IRREVERSIBLE)'
+        type: boolean
+        default: false
+
+jobs:
+  npm:
+    if: inputs.npm
+    runs-on: ubuntu-latest
+    environment: release
+    defaults:
+      run:
+        working-directory: packages/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  pypi:
+    if: inputs.pypi
+    runs-on: ubuntu-latest
+    environment: release
+    # Trusted Publishing (OIDC) - there is NO PyPI API token to create, store or rotate.
+    # Configure once at pypi.org/manage/account/publishing/ with:
+    #   owner EchoZeroApp, repo echozero-sdk, workflow release.yml, environment release
+    permissions:
+      id-token: write
+    defaults:
+      run:
+        working-directory: packages/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: packages/python/dist
+
+  crates:
+    if: inputs.crates
+    runs-on: ubuntu-latest
+    environment: release
+    defaults:
+      run:
+        working-directory: packages/rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --dry-run
+      - run: cargo publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
