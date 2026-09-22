@@ -4,7 +4,13 @@ version = "0.1.0"
 edition = "2021"
 description = "Official Rust SDK for EchoZero REST, MCP, webhooks, and signal streams."
 license = "MIT"
+readme = "README.md"
+homepage = "https://docs.echozero.app/guides/sdk"
+documentation = "https://docs.rs/echozero"
 repository = "https://github.com/EchoZeroApp/echozero-sdk"
+keywords = ["echozero", "trading", "webhooks", "hmac", "solana"]
+categories = ["api-bindings", "web-programming::http-client"]
+include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE"]
 
 [dependencies]
 hex = "0.4"
