@@ -17,8 +17,10 @@ export {
 } from './hmac.js';
 export {
   EchoZeroSignalClient,
+  SIGNAL_NAMESPACE,
   type SignalClientOptions,
-  type SignalEventHandler,
+  type SignalGatewayError,
+  type SignalReceived,
 } from './websocket.js';
 export {
   StructuredSignalChain,

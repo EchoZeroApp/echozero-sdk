@@ -9,7 +9,7 @@ from .hmac import (
 )
 from .inbound_canonical import inbound_webhook_canonical_json, rest_request_body_text
 from .signals import AgentSignalResponse, OutboundExecutionWebhook
-from .websocket import EchoZeroSignalClient
+from .websocket import SIGNAL_NAMESPACE, EchoZeroSignalClient
 
 __all__ = [
     "AgentSignalResponse",
@@ -17,6 +17,7 @@ __all__ = [
     "EchoZeroClient",
     "EchoZeroSignalClient",
     "OutboundExecutionWebhook",
+    "SIGNAL_NAMESPACE",
     "canonical_webhook_body",
     "inbound_webhook_canonical_json",
     "rest_request_body_text",

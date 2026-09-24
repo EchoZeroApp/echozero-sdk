@@ -1,6 +1,6 @@
 {
   "name": "@echozero/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Official TypeScript SDK for EchoZero REST, MCP, webhooks, and signal streams.",
   "license": "MIT",
   "author": "Echo Zero <support@echozero.app>",
@@ -51,7 +51,11 @@
     "node": ">=20"
   },
   "devDependencies": {
+    "socket.io": "^4.8.3",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"
+  },
+  "dependencies": {
+    "socket.io-client": "^4.8.3"
   }
 }

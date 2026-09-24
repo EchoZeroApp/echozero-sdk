@@ -66,3 +66,30 @@ const ok = await verifyOutboundWebhook({
   signature: req.headers['x-echozero-signature'],
 });
 ```
+
+## Signal WebSocket
+
+The gateway speaks Socket.IO (namespace `/ws/signals` on `https://mcp.echozero.app`) and authenticates with your developer API key. It accepts structured envelopes (`eventType`) and the legacy `{ action, tokenAddress, amount }` shape; natural-language `text` signals are HTTP webhook only. Responses are not correlated to requests, so match them with `idempotencyKey` / `signalId`.
+
+```ts
+import { EchoZeroSignalClient } from '@echozero/sdk';
+
+const signals = new EchoZeroSignalClient({ apiKey: process.env.ECHOZERO_API_KEY! });
+signals.onReceived((event) => console.log('accepted', event.signalId, event.status));
+signals.onSignalError((event) => console.error('rejected', event.message));
+
+await signals.connect(); // resolves on `authenticated`, rejects on a bad key
+
+signals.sendSignal(process.env.ECHOZERO_AGENT_ID!, {
+  eventType: 'buy',
+  chain: 'solana',
+  symbol: 'SOL',
+  side: 'long',
+  tradeType: 'spot',
+  amount: 100,
+  idempotencyKey: 'entry-001',
+  reasoning: 'Breakout above range high',
+});
+```
+
+`socket.io-client` handles reconnects and re-sends the API key on each reconnect.
