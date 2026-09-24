@@ -18,7 +18,7 @@ This repository is `EchoZeroApp/echozero-sdk` and ships under the MIT License. I
 - Inbound agent webhook signing and verification (`X-EZ-Signature` / `X-EZ-Timestamp`).
 - Outbound `signal.execution` webhook verification (`x-echozero-signature`).
 - `postAgentSignal` / `post_agent_signal` helpers for developer agent ingress.
-- WebSocket signal client helpers for developer signal streams where supported.
+- Socket.IO signal client for the `/ws/signals` gateway (all four languages).
 - Example projects for TypeScript, Python, Rust, and Go under `examples/`.
 
 ## Examples
@@ -56,17 +56,19 @@ The current checked-in SDK code is intentionally hand-written around stable cros
 
 ## Package Status
 
-This is a source scaffold, not a published release. Before publishing:
+Published:
 
-1. Create or move this folder to `EchoZeroApp/echozero-sdk`.
-2. Confirm `LICENSE` remains at repository root.
-3. Generate endpoint-specific clients from `https://mcp.echozero.app/api/docs-json`.
-4. Run each package's tests/build checks.
-5. Publish:
-   - npm: `@echozero/sdk`
-   - PyPI: `echozero`
-   - crates.io: `echozero`
-   - Go module: `github.com/EchoZeroApp/echozero-sdk/packages/go`
+- npm: [`@echozero/sdk`](https://www.npmjs.com/package/@echozero/sdk)
+- PyPI: [`echozero`](https://pypi.org/project/echozero/)
+- crates.io: [`echozero`](https://crates.io/crates/echozero)
+- Go module: `github.com/EchoZeroApp/echozero-sdk/packages/go` (tags `packages/go/vX.Y.Z`)
+
+Releases run from the manual `Release` workflow. Tag the Go module separately.
+
+### 0.2.0
+
+- **Breaking:** the signal WebSocket client now speaks Socket.IO to `/ws/signals` and authenticates with `auth.apiKey` / `x-api-key`. The 0.1.0 client opened a plain WebSocket with `?api_key=` and could not connect to the gateway. Constructors take the API key directly and `sendSignal` takes the developer agent id.
+- Rust: the `websocket` feature now includes TLS, so `wss://` works.
 
 ## Basic TypeScript Usage
 

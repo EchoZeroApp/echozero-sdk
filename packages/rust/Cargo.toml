@@ -1,6 +1,6 @@
 [package]
 name = "echozero"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Official Rust SDK for EchoZero REST, MCP, webhooks, and signal streams."
 license = "MIT"
@@ -10,7 +10,7 @@ documentation = "https://docs.rs/echozero"
 repository = "https://github.com/EchoZeroApp/echozero-sdk"
 keywords = ["echozero", "trading", "webhooks", "hmac", "solana"]
 categories = ["api-bindings", "web-programming::http-client"]
-include = ["src/**/*", "Cargo.toml", "README.md", "LICENSE"]
+include = ["src/**/*", "tests/**/*", "Cargo.toml", "README.md", "LICENSE"]
 
 [dependencies]
 hex = "0.4"
@@ -20,13 +20,18 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 thiserror = "1"
-tokio = { version = "1", features = ["net"], optional = true }
-tokio-tungstenite = { version = "0.24", optional = true }
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"], optional = true }
+tokio = { version = "1", features = ["net", "rt", "sync", "macros"], optional = true }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"], optional = true }
 url = "2"
 
 [features]
 default = []
-websocket = ["tokio", "tokio-tungstenite"]
+websocket = ["dep:futures-util", "dep:tokio", "dep:tokio-tungstenite"]
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[[example]]
+name = "signal_stream"
+required-features = ["websocket"]

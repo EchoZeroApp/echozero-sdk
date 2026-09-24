@@ -1,41 +1,106 @@
+import { io, type ManagerOptions, type Socket, type SocketOptions } from 'socket.io-client';
+import type { InboundSignalBody } from './signals.js';
+
+/** Socket.IO namespace of the developer signal gateway. */
+export const SIGNAL_NAMESPACE = '/ws/signals';
+
 export type SignalClientOptions = {
-  url: string;
-  apiKey?: string;
-  bearerToken?: string;
-  WebSocketImpl?: typeof WebSocket;
+  /** Developer API key (`ez_live_...`). Sent as the Socket.IO `auth.apiKey`. */
+  apiKey: string;
+  /** Defaults to `https://mcp.echozero.app`. */
+  baseUrl?: string;
+  /** Extra options passed straight to `socket.io-client`. */
+  socketOptions?: Partial<ManagerOptions & SocketOptions>;
 };
 
-export type SignalEventHandler = (event: MessageEvent) => void;
+/** Payload of the `signal:received` event. */
+export type SignalReceived = {
+  signalId: string;
+  status: string;
+  executionResult?: {
+    success: boolean;
+    txHash?: string;
+    executedAmountUsd?: number;
+    errorMessage?: string;
+  };
+};
 
+/** Payload of the `signal:error` and `error` events. */
+export type SignalGatewayError = { message: string };
+
+/**
+ * Socket.IO client for `wss://mcp.echozero.app` namespace `/ws/signals`.
+ *
+ * The WebSocket gateway accepts structured envelopes (`eventType`) and the
+ * legacy `{ action, tokenAddress, amount }` shape. Natural-language `text`
+ * signals are only accepted by the HTTP inbound webhook.
+ *
+ * Responses are not correlated to requests: use `idempotencyKey` and the
+ * returned `signalId` to match them.
+ */
 export class EchoZeroSignalClient {
-  private socket?: WebSocket;
-  private readonly WebSocketImpl: typeof WebSocket;
+  readonly socket: Socket;
 
-  constructor(private readonly options: SignalClientOptions) {
-    this.WebSocketImpl = options.WebSocketImpl ?? WebSocket;
+  constructor(options: SignalClientOptions) {
+    const baseUrl = (options.baseUrl ?? 'https://mcp.echozero.app').replace(/\/+$/, '');
+    this.socket = io(`${baseUrl}${SIGNAL_NAMESPACE}`, {
+      transports: ['websocket'],
+      autoConnect: false,
+      ...options.socketOptions,
+      auth: { apiKey: options.apiKey },
+    });
   }
 
-  connect(onMessage: SignalEventHandler): WebSocket {
-    const url = new URL(this.options.url);
-    if (this.options.apiKey) url.searchParams.set('api_key', this.options.apiKey);
-    if (this.options.bearerToken) {
-      url.searchParams.set('access_token', this.options.bearerToken);
+  /** Connects and resolves once the gateway emits `authenticated`. */
+  connect(timeoutMs = 10_000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.socket.off('authenticated', onAuthenticated);
+        this.socket.off('error', onError);
+        this.socket.off('connect_error', onError);
+      };
+      const onAuthenticated = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = (error: SignalGatewayError | Error) => {
+        cleanup();
+        this.socket.disconnect();
+        reject(new Error(`EchoZero signal gateway: ${error.message}`));
+      };
+      const timer = setTimeout(
+        () => onError(new Error('timed out waiting for authentication')),
+        timeoutMs,
+      );
+      this.socket.on('authenticated', onAuthenticated);
+      this.socket.on('error', onError);
+      this.socket.on('connect_error', onError);
+      this.socket.connect();
+    });
+  }
+
+  /** Emits a `signal` event for one of your developer agents. */
+  sendSignal(developerAgentId: string, signal: InboundSignalBody): void {
+    if (!this.socket.connected) {
+      throw new Error('Signal WebSocket is not connected');
     }
-
-    this.socket = new this.WebSocketImpl(url.toString());
-    this.socket.addEventListener('message', onMessage);
-    return this.socket;
+    this.socket.emit('signal', { ...signal, developerAgentId });
   }
 
-  sendSignal(signal: unknown): void {
-    if (!this.socket || this.socket.readyState !== this.WebSocketImpl.OPEN) {
-      throw new Error('Signal WebSocket is not open');
-    }
-    this.socket.send(JSON.stringify({ event: 'signal', data: signal }));
+  /** Subscribes to `signal:received`. Returns an unsubscribe function. */
+  onReceived(handler: (event: SignalReceived) => void): () => void {
+    this.socket.on('signal:received', handler);
+    return () => this.socket.off('signal:received', handler);
   }
 
-  close(code?: number, reason?: string): void {
-    this.socket?.close(code, reason);
-    this.socket = undefined;
+  /** Subscribes to `signal:error`. Returns an unsubscribe function. */
+  onSignalError(handler: (event: SignalGatewayError) => void): () => void {
+    this.socket.on('signal:error', handler);
+    return () => this.socket.off('signal:error', handler);
+  }
+
+  close(): void {
+    this.socket.disconnect();
   }
 }
