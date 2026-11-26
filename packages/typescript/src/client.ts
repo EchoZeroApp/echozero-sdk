@@ -12,6 +12,7 @@ export type EchoZeroClientOptions = {
 export type RequestOptions = Omit<RequestInit, 'body'> & {
   query?: Record<string, string | number | boolean | null | undefined>;
   json?: unknown;
+  /** Sign with HMAC. Default: sign automatically when `hmacSecretKey` is set; pass `false` to opt out. */
   hmac?: boolean;
 };
 
@@ -73,6 +74,7 @@ export class EchoZeroClient {
   ): Promise<T> {
     const webhookHeaders = await signInboundWebhook({ signingSecret, body });
     return this.post<T>(`/api/public/agent-signals/${agentId}`, body, {
+      hmac: false,
       headers: {
         'X-EZ-Timestamp': webhookHeaders['X-EZ-Timestamp'],
         'X-EZ-Signature': webhookHeaders['X-EZ-Signature'],
@@ -101,7 +103,7 @@ export class EchoZeroClient {
       headers.set('x-api-key', this.apiKey);
     }
 
-    if (options.hmac) {
+    if (options.hmac ?? Boolean(this.hmacSecretKey)) {
       if (!this.hmacSecretKey) {
         throw new Error('hmacSecretKey is required when hmac=true');
       }

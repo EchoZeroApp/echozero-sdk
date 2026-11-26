@@ -17,10 +17,11 @@ import { EchoZeroClient } from '@echozero/sdk';
 
 const client = new EchoZeroClient({
   baseUrl: 'https://mcp.echozero.app',
-  apiKey: process.env.ECHOZERO_API_KEY,
-  hmacSecretKey: process.env.ECHOZERO_SECRET_KEY,
+  apiKey: process.env.EZ_API_KEY,
+  hmacSecretKey: process.env.EZ_SECRET,
 });
 
+// Signed automatically because hmacSecretKey is set.
 const profile = await client.get('/api/v1/users/me');
 ```
 
@@ -30,7 +31,7 @@ const profile = await client.get('/api/v1/users/me');
 await client.post('/api/api-keys', { name: 'Signed request' }, { hmac: true });
 ```
 
-Pass `hmacSecretKey` in the client options to enable HMAC signing.
+API-key requests must be HMAC-signed. When `hmacSecretKey` is set, the client signs every request automatically (adds `x-timestamp` and `x-signature`). Pass `{ hmac: false }` on a call to opt out, or `{ hmac: true }` to require a secret.
 
 ## Inbound Agent Signal
 

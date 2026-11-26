@@ -16,10 +16,14 @@ from echozero import EchoZeroClient
 
 client = EchoZeroClient(
     base_url="https://mcp.echozero.app",
-    api_key=os.environ["ECHOZERO_API_KEY"],
+    api_key=os.environ["EZ_API_KEY"],
+    hmac_secret_key=os.environ["EZ_SECRET"],
 )
 
+# Signed automatically because hmac_secret_key is set.
 print(client.get("/api/v1/users/me"))
+
+# Pass hmac=False on a call to opt out.
 ```
 
 ## Inbound Webhook Signing

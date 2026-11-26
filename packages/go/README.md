@@ -12,10 +12,12 @@ go get github.com/EchoZeroApp/echozero-sdk/packages/go
 
 ```go
 client := echozero.NewClient("https://mcp.echozero.app").
-    WithAPIKey(os.Getenv("ECHOZERO_API_KEY"))
+    WithAPIKey(os.Getenv("EZ_API_KEY")).
+    WithHMACSecretKey(os.Getenv("EZ_SECRET"))
 
-var metadata map[string]any
-if err := client.Get(context.Background(), "/public/index.json", &metadata); err != nil {
+// API-key requests must be HMAC-signed: set HMAC: true on each call.
+var me map[string]any
+if err := client.Request(context.Background(), "GET", "/api/v1/users/me", echozero.RequestOptions{HMAC: true}, &me); err != nil {
     panic(err)
 }
 ```
