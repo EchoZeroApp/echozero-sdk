@@ -65,6 +65,10 @@ Published:
 
 Releases run from the manual `Release` workflow. Tag the Go module separately.
 
+### 0.2.1
+
+- Fix: structured inbound webhook signatures now include `caption` (TypeScript, Python, Go, Rust), matching the server. Captioned signals previously failed with 401.
+
 ### 0.2.0
 
 - **Breaking:** the signal WebSocket client now speaks Socket.IO to `/ws/signals` and authenticates with `auth.apiKey` / `x-api-key`. The 0.1.0 client opened a plain WebSocket with `?api_key=` and could not connect to the gateway. Constructors take the API key directly and `sendSignal` takes the developer agent id.

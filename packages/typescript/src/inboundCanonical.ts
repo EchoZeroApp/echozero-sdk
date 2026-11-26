@@ -16,6 +16,7 @@ type CanonicalValue =
 const STRUCTURED_SIGNING_KEYS = [
   'action',
   'amount',
+  'caption',
   'chain',
   'changes',
   'clientTimestamp',
