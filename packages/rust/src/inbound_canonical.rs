@@ -1,7 +1,7 @@
 use serde_json::{Map, Value};
 
 const STRUCTURED_SIGNING_KEYS: &[&str] = &[
-    "action", "amount", "chain", "changes", "clientTimestamp", "confidence", "context",
+    "action", "amount", "caption", "chain", "changes", "clientTimestamp", "confidence", "context",
     "currentPnlPct", "entryPrice", "entryZone", "eventType", "exitPrice", "exitReason",
     "expiresAt", "ideaId", "instrument", "leverageX", "metadata", "orderType", "pnlPct",
     "positionRef", "reasoning", "relatedTradeId", "riskMgmt", "sellSizePct", "side",

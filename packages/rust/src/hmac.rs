@@ -181,4 +181,24 @@ mod tests {
             "be420f61d91e6b871481774c62f972f0aafa6f5f1a727ba1e4a32558784f77c3"
         );
     }
+
+    #[test]
+    fn signs_inbound_webhook_caption() {
+        let body = json!({
+            "eventType": "buy",
+            "idempotencyKey": "sdk-caption-1",
+            "tokenAddress": "So11111111111111111111111111111111111111112",
+            "reasoning": "test",
+            "caption": "Entered on the breakout."
+        });
+        let (_, signature) = sign_inbound_webhook(
+            "test_secret",
+            body.as_object().unwrap(),
+            Some(1_710_000_000),
+        );
+        assert_eq!(
+            signature,
+            "251cb149e8a1ecf74fa8f9c48b734a47b3165e650b33c6146d1f05bc2a18eb36"
+        );
+    }
 }

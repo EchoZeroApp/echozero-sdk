@@ -10,6 +10,7 @@ import (
 var structuredSigningKeys = []string{
 	"action",
 	"amount",
+	"caption",
 	"chain",
 	"changes",
 	"clientTimestamp",

@@ -112,3 +112,24 @@ func TestVerifyOutboundWebhook(t *testing.T) {
 		t.Fatal("expected outbound webhook verification to pass")
 	}
 }
+
+func TestSignInboundWebhookIncludesCaption(t *testing.T) {
+	headers, err := SignInboundWebhook(
+		"test_secret",
+		map[string]any{
+			"eventType":      "buy",
+			"idempotencyKey": "sdk-caption-1",
+			"tokenAddress":   "So11111111111111111111111111111111111111112",
+			"reasoning":      "test",
+			"caption":        "Entered on the breakout.",
+		},
+		1_710_000_000,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const expected = "251cb149e8a1ecf74fa8f9c48b734a47b3165e650b33c6146d1f05bc2a18eb36"
+	if headers.Signature != expected {
+		t.Fatalf("signature mismatch: got %s want %s", headers.Signature, expected)
+	}
+}

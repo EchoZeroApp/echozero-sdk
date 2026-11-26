@@ -129,3 +129,21 @@ def test_verify_outbound_webhook():
         timestamp=timestamp,
         signature=signature,
     )
+
+
+def test_sign_inbound_webhook_includes_caption():
+    headers = sign_inbound_webhook(
+        signing_secret="test_secret",
+        body={
+            "eventType": "buy",
+            "idempotencyKey": "sdk-caption-1",
+            "tokenAddress": "So11111111111111111111111111111111111111112",
+            "reasoning": "test",
+            "caption": "Entered on the breakout.",
+        },
+        timestamp_seconds=1_710_000_000,
+    )
+    assert (
+        headers["X-EZ-Signature"]
+        == "251cb149e8a1ecf74fa8f9c48b734a47b3165e650b33c6146d1f05bc2a18eb36"
+    )

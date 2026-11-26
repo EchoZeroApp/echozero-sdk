@@ -134,3 +134,23 @@ describe('verifyOutboundWebhook', () => {
     assert.equal(ok, true);
   });
 });
+
+describe('captioned structured signal', () => {
+  it('signs caption like the server (shared vector)', async () => {
+    const headers = await signInboundWebhook({
+      signingSecret: 'test_secret',
+      body: {
+        eventType: 'buy',
+        idempotencyKey: 'sdk-caption-1',
+        tokenAddress: 'So11111111111111111111111111111111111111112',
+        reasoning: 'test',
+        caption: 'Entered on the breakout.',
+      },
+      timestampSeconds: 1_710_000_000,
+    });
+    assert.equal(
+      headers['X-EZ-Signature'],
+      '251cb149e8a1ecf74fa8f9c48b734a47b3165e650b33c6146d1f05bc2a18eb36',
+    );
+  });
+});

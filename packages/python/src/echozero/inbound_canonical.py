@@ -8,6 +8,7 @@ from typing import Any, Mapping
 STRUCTURED_SIGNING_KEYS = (
     "action",
     "amount",
+    "caption",
     "chain",
     "changes",
     "clientTimestamp",
