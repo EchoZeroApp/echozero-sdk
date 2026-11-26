@@ -54,6 +54,7 @@ class EchoZeroClient:
         return self.post(
             f"/api/public/agent-signals/{agent_id}",
             json_body=dict(body),
+            hmac=False,
             headers={
                 "X-EZ-Timestamp": webhook_headers["X-EZ-Timestamp"],
                 "X-EZ-Signature": webhook_headers["X-EZ-Signature"],
@@ -68,7 +69,7 @@ class EchoZeroClient:
         query: Mapping[str, Any] | None = None,
         json_body: Any | None = None,
         headers: Mapping[str, str] | None = None,
-        hmac: bool = False,
+        hmac: bool | None = None,
     ) -> Any:
         url = self._url(path, query)
         request_headers = {"Accept": "application/json", **(headers or {})}
@@ -84,7 +85,8 @@ class EchoZeroClient:
             body_bytes = body_text.encode("utf-8")
             request_headers["Content-Type"] = "application/json"
 
-        if hmac:
+        # Sign automatically when a secret is configured; hmac=False opts out.
+        if hmac if hmac is not None else bool(self.hmac_secret_key):
             if not self.hmac_secret_key:
                 raise ValueError("hmac_secret_key is required when hmac=True")
             request_headers.update(

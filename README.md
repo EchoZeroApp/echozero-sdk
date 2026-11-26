@@ -40,7 +40,7 @@ cd examples/rust && cargo run
 cd examples/rust && ECHOZERO_OFFLINE=1 cargo run
 ```
 
-Set `ECHOZERO_API_KEY`, `ECHOZERO_OAUTH_TOKEN`, or `ECHOZERO_WEBHOOK_SECRET` as needed.
+Set `EZ_API_KEY` and `EZ_SECRET` (API-key requests must be HMAC-signed), `ECHOZERO_OAUTH_TOKEN`, or `ECHOZERO_WEBHOOK_SECRET` as needed.
 
 If you see `failed to lookup address information` or DNS errors, check network access to `mcp.echozero.app`, or point at a local server with `ECHOZERO_BASE_URL=http://localhost:4010`.
 
@@ -77,11 +77,12 @@ import { EchoZeroClient } from '@echozero/sdk';
 
 const client = new EchoZeroClient({
   baseUrl: 'https://mcp.echozero.app',
-  apiKey: process.env.ECHOZERO_API_KEY,
+  apiKey: process.env.EZ_API_KEY,
+  hmacSecretKey: process.env.EZ_SECRET, // requests are signed automatically
 });
 
-const metadata = await client.get('/public/index.json');
-console.log(metadata.name);
+const me = await client.get('/api/v1/users/me');
+console.log(me);
 ```
 
 ## Basic Python Usage
@@ -91,30 +92,36 @@ from echozero import EchoZeroClient
 
 client = EchoZeroClient(
     base_url="https://mcp.echozero.app",
-    api_key=os.environ["ECHOZERO_API_KEY"],
+    api_key=os.environ["EZ_API_KEY"],
+    hmac_secret_key=os.environ["EZ_SECRET"],  # requests are signed automatically
 )
 
-print(client.get("/public/index.json")["name"])
+print(client.get("/api/v1/users/me"))
 ```
 
 ## Basic Rust Usage
 
 ```rust
 let client = echozero::EchoZeroClient::new("https://mcp.echozero.app")
-    .with_api_key(std::env::var("ECHOZERO_API_KEY")?);
+    .with_api_key(std::env::var("EZ_API_KEY")?)
+    .with_hmac_secret_key(std::env::var("EZ_SECRET")?);
 
-let value = client.get_json("/public/index.json").await?;
+let me = client
+    .request_json(reqwest::Method::GET, "/api/v1/users/me", None, true)
+    .await?;
 ```
 
 ## Basic Go Usage
 
 ```go
 client := echozero.NewClient("https://mcp.echozero.app").
-    WithAPIKey(os.Getenv("ECHOZERO_API_KEY"))
+    WithAPIKey(os.Getenv("EZ_API_KEY")).
+    WithHMACSecretKey(os.Getenv("EZ_SECRET"))
 
-var metadata map[string]any
-if err := client.Get(context.Background(), "/public/index.json", &metadata); err != nil {
+var me map[string]any
+opts := echozero.RequestOptions{HMAC: true}
+if err := client.Request(context.Background(), "GET", "/api/v1/users/me", opts, &me); err != nil {
     panic(err)
 }
-fmt.Println(metadata["name"])
+fmt.Println(me)
 ```

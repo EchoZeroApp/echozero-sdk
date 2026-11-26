@@ -13,9 +13,13 @@ echozero = "0.2"
 
 ```rust
 let client = echozero::EchoZeroClient::new("https://mcp.echozero.app")
-    .with_api_key(std::env::var("ECHOZERO_API_KEY")?);
+    .with_api_key(std::env::var("EZ_API_KEY")?)
+    .with_hmac_secret_key(std::env::var("EZ_SECRET")?);
 
-let me = client.get_json("/api/v1/users/me").await?;
+// API-key requests must be HMAC-signed: pass hmac = true.
+let me = client
+    .request_json(reqwest::Method::GET, "/api/v1/users/me", None, true)
+    .await?;
 ```
 
 ## Inbound Webhook Signing
