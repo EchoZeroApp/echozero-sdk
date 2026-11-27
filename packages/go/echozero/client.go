@@ -73,6 +73,45 @@ func (client *Client) Post(ctx context.Context, path string, body any, out any) 
 	return client.Request(ctx, http.MethodPost, path, RequestOptions{Body: body}, out)
 }
 
+func (client *Client) Put(ctx context.Context, path string, body any, out any) error {
+	return client.Request(ctx, http.MethodPut, path, RequestOptions{Body: body}, out)
+}
+
+func (client *Client) Delete(ctx context.Context, path string, out any) error {
+	return client.Request(ctx, http.MethodDelete, path, RequestOptions{}, out)
+}
+
+// SetExecutionCallback sets the https URL on your server that receives signed
+// signal.execution results for an agent. Public hosts only: http, credentials in
+// the URL and private or internal addresses are rejected with a 400 *APIError.
+// Needs the write:agents scope. The request is signed when HMACSecretKey is set.
+// out receives the updated agent and may be nil.
+func (client *Client) SetExecutionCallback(ctx context.Context, agentID, callbackURL string, out any) error {
+	return client.Request(
+		ctx,
+		http.MethodPut,
+		executionCallbackPath(agentID),
+		RequestOptions{Body: map[string]string{"url": callbackURL}, HMAC: client.HMACSecretKey != ""},
+		out,
+	)
+}
+
+// ClearExecutionCallback stops execution results being POSTed to your server.
+// out receives the updated agent and may be nil.
+func (client *Client) ClearExecutionCallback(ctx context.Context, agentID string, out any) error {
+	return client.Request(
+		ctx,
+		http.MethodDelete,
+		executionCallbackPath(agentID),
+		RequestOptions{HMAC: client.HMACSecretKey != ""},
+		out,
+	)
+}
+
+func executionCallbackPath(agentID string) string {
+	return "/api/v1/agents/" + url.PathEscape(agentID) + "/execution-callback"
+}
+
 func (client *Client) PostAgentSignal(
 	ctx context.Context,
 	agentID string,

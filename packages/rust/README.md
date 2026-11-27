@@ -18,6 +18,15 @@ let client = echozero::EchoZeroClient::new("https://mcp.echozero.app")
 let me = client.get_json("/api/v1/users/me").await?;
 ```
 
+## Execution Callback
+
+```rust
+client.set_execution_callback(&agent_id, "https://hooks.example.com/echozero").await?;
+client.clear_execution_callback(&agent_id).await?;
+```
+
+The URL must be https and a public host (private addresses, credentials in the URL and http are rejected with a 400). Needs the `write:agents` scope. Deliveries are signed with your API key secret.
+
 ## Inbound Webhook Signing
 
 ```rust

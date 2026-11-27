@@ -38,11 +38,34 @@ class EchoZeroClient:
     def post(self, path: str, json_body: Any | None = None, **kwargs: Any) -> Any:
         return self.request("POST", path, json_body=json_body, **kwargs)
 
+    def put(self, path: str, json_body: Any | None = None, **kwargs: Any) -> Any:
+        return self.request("PUT", path, json_body=json_body, **kwargs)
+
     def patch(self, path: str, json_body: Any | None = None, **kwargs: Any) -> Any:
         return self.request("PATCH", path, json_body=json_body, **kwargs)
 
     def delete(self, path: str, **kwargs: Any) -> Any:
         return self.request("DELETE", path, **kwargs)
+
+    def set_execution_callback(self, agent_id: str, url: str) -> Any:
+        """Set the https URL on your server that receives signed ``signal.execution`` results.
+
+        Public hosts only: http, credentials in the URL and private or internal
+        addresses are rejected with a 400 ``EchoZeroApiError``. Needs the
+        ``write:agents`` scope. Returns the updated agent.
+        """
+        return self.put(
+            _execution_callback_path(agent_id),
+            json_body={"url": url},
+            hmac=self.hmac_secret_key is not None,
+        )
+
+    def clear_execution_callback(self, agent_id: str) -> Any:
+        """Stop execution results being POSTed to your server. Returns the updated agent."""
+        return self.delete(
+            _execution_callback_path(agent_id),
+            hmac=self.hmac_secret_key is not None,
+        )
 
     def post_agent_signal(
         self,
@@ -144,3 +167,9 @@ class EchoZeroClient:
             return response.json()
         except ValueError:
             return response.text
+
+
+def _execution_callback_path(agent_id: str) -> str:
+    from urllib.parse import quote
+
+    return f"/api/v1/agents/{quote(agent_id, safe='')}/execution-callback"

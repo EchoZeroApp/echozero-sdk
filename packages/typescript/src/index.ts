@@ -1,6 +1,7 @@
 export {
   EchoZeroApiError,
   EchoZeroClient,
+  type AgentRecord,
   type EchoZeroClientOptions,
   type RequestOptions,
 } from './client.js';

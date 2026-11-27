@@ -22,6 +22,15 @@ client = EchoZeroClient(
 print(client.get("/api/v1/users/me"))
 ```
 
+## Execution Callback
+
+```py
+client.set_execution_callback(agent_id, "https://hooks.example.com/echozero")
+client.clear_execution_callback(agent_id)
+```
+
+The URL must be https and a public host (private addresses, credentials in the URL and http are rejected with a 400). Needs the `write:agents` scope. Deliveries are signed with your API key secret.
+
 ## Inbound Webhook Signing
 
 ```py

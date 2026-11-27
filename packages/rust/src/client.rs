@@ -74,6 +74,36 @@ impl EchoZeroClient {
             .await
     }
 
+    /// Sets the https URL on your server that receives signed `signal.execution`
+    /// results for an agent. Public hosts only: http, credentials in the URL and
+    /// private or internal addresses are rejected with a 400 `EchoZeroError::Api`.
+    /// Needs the `write:agents` scope. Signed when an HMAC secret key is set.
+    /// Returns the updated agent.
+    pub async fn set_execution_callback(
+        &self,
+        agent_id: &str,
+        url: &str,
+    ) -> Result<Value, EchoZeroError> {
+        self.request_json(
+            reqwest::Method::PUT,
+            &execution_callback_path(agent_id),
+            Some(serde_json::json!({ "url": url })),
+            self.hmac_secret_key.is_some(),
+        )
+        .await
+    }
+
+    /// Stops execution results being POSTed to your server. Returns the updated agent.
+    pub async fn clear_execution_callback(&self, agent_id: &str) -> Result<Value, EchoZeroError> {
+        self.request_json(
+            reqwest::Method::DELETE,
+            &execution_callback_path(agent_id),
+            None,
+            self.hmac_secret_key.is_some(),
+        )
+        .await
+    }
+
     pub async fn post_agent_signal(
         &self,
         agent_id: &str,
@@ -202,6 +232,19 @@ impl EchoZeroClient {
             ))?)
         }
     }
+}
+
+fn execution_callback_path(agent_id: &str) -> String {
+    let mut encoded = String::new();
+    for byte in agent_id.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char)
+            }
+            _ => encoded.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    format!("/api/v1/agents/{encoded}/execution-callback")
 }
 
 fn path_with_query(url: &Url) -> String {

@@ -15,6 +15,14 @@ export type RequestOptions = Omit<RequestInit, 'body'> & {
   hmac?: boolean;
 };
 
+/** Agent record returned by the execution callback routes. Other fields pass through. */
+export type AgentRecord = {
+  id?: string;
+  /** The execution callback URL (the field name is historical). Empty or absent when unset. */
+  inboundWebhookUrl?: string | null;
+  [key: string]: unknown;
+};
+
 export class EchoZeroApiError extends Error {
   constructor(
     message: string,
@@ -54,6 +62,14 @@ export class EchoZeroClient {
     return this.request<T>(path, { ...options, method: 'POST', json });
   }
 
+  put<T = unknown>(
+    path: string,
+    json?: unknown,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    return this.request<T>(path, { ...options, method: 'PUT', json });
+  }
+
   patch<T = unknown>(
     path: string,
     json?: unknown,
@@ -64,6 +80,25 @@ export class EchoZeroClient {
 
   delete<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
     return this.request<T>(path, { ...options, method: 'DELETE' });
+  }
+
+  /**
+   * Sets the https URL on your server that receives signed `signal.execution`
+   * results for an agent. Public hosts only: http, credentials in the URL and
+   * private or internal addresses are rejected with 400. Needs the
+   * `write:agents` scope. Deliveries are signed with your API key secret.
+   */
+  setExecutionCallback<T = AgentRecord>(agentId: string, url: string): Promise<T> {
+    return this.put<T>(executionCallbackPath(agentId), { url }, {
+      hmac: this.hmacSecretKey !== undefined,
+    });
+  }
+
+  /** Stops execution results being POSTed to your server. Needs `write:agents`. */
+  clearExecutionCallback<T = AgentRecord>(agentId: string): Promise<T> {
+    return this.delete<T>(executionCallbackPath(agentId), {
+      hmac: this.hmacSecretKey !== undefined,
+    });
   }
 
   async postAgentSignal<T = AgentSignalResponse>(
@@ -150,6 +185,10 @@ export class EchoZeroClient {
     });
     return url.toString();
   }
+}
+
+function executionCallbackPath(agentId: string): string {
+  return `/api/v1/agents/${encodeURIComponent(agentId)}/execution-callback`;
 }
 
 function safeJsonParse(value: string): unknown {
