@@ -20,6 +20,15 @@ if err := client.Get(context.Background(), "/public/index.json", &metadata); err
 }
 ```
 
+## Execution Callback
+
+```go
+err := client.SetExecutionCallback(ctx, agentID, "https://hooks.example.com/echozero", nil)
+err = client.ClearExecutionCallback(ctx, agentID, nil)
+```
+
+The URL must be https and a public host (private addresses, credentials in the URL and http are rejected with a 400). Needs the `write:agents` scope. Deliveries are signed with your API key secret.
+
 ## Inbound Webhook Signing
 
 ```go

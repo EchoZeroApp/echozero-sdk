@@ -54,6 +54,15 @@ const headers = await signInboundWebhook({
 });
 ```
 
+## Execution Callback
+
+```ts
+await client.setExecutionCallback(agentId, 'https://hooks.example.com/echozero');
+await client.clearExecutionCallback(agentId);
+```
+
+The URL must be https and a public host (private addresses, credentials in the URL and http are rejected with a 400). Needs the `write:agents` scope. Deliveries are signed with your API key secret.
+
 ## Outbound Execution Webhooks
 
 ```ts

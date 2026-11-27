@@ -17,6 +17,7 @@ This repository is `EchoZeroApp/echozero-sdk` and ships under the MIT License. I
 - Optional HMAC request-signing helpers for `x-signature` / `x-timestamp`.
 - Inbound agent webhook signing and verification (`X-EZ-Signature` / `X-EZ-Timestamp`).
 - Outbound `signal.execution` webhook verification (`x-echozero-signature`).
+- Set and clear the execution callback URL for an agent (`setExecutionCallback` / `set_execution_callback`).
 - `postAgentSignal` / `post_agent_signal` helpers for developer agent ingress.
 - Socket.IO signal client for the `/ws/signals` gateway (all four languages).
 - Example projects for TypeScript, Python, Rust, and Go under `examples/`.
@@ -64,6 +65,10 @@ Published:
 - Go module: `github.com/EchoZeroApp/echozero-sdk/packages/go` (tags `packages/go/vX.Y.Z`)
 
 Releases run from the manual `Release` workflow. Tag the Go module separately.
+
+### 0.2.1
+
+- New: set and clear the outbound execution callback URL for an agent (`PUT` / `DELETE /api/v1/agents/{id}/execution-callback`). TypeScript `setExecutionCallback` / `clearExecutionCallback`, Python `set_execution_callback` / `clear_execution_callback`, Go `SetExecutionCallback` / `ClearExecutionCallback`, Rust `set_execution_callback` / `clear_execution_callback`. The URL must be https and a public host. The clients also gain a `put` helper (TypeScript, Python, Go).
 
 ### 0.2.0
 
